@@ -118,15 +118,22 @@ async def cb_admin_users(callback: CallbackQuery):
 
     text = f"👥 <b>لیست کاربران</b> (صفحه {page}/{total_pages}) — مجموع: {total}\n\n"
 
+    bot = callback.bot
     for u in users:
-        name = escape(u["first_name"] or "")
-        if u["last_name"]:
-            name += f" {escape(u['last_name'])}"
-        name = name or "بدون نام"
-        uname = f"@{u['username']}" if u["username"] else "—"
+        user_id = u["user_id"]
+        try:
+            tg_user = await bot.get_chat(user_id)
+            name = escape(tg_user.first_name or "")
+            if getattr(tg_user, "last_name", None):
+                name += f" {escape(tg_user.last_name)}"
+            name = name or "بدون نام"
+            uname = f"@{tg_user.username}" if getattr(tg_user, "username", None) else "—"
+        except Exception:
+            name = "ناشناس"
+            uname = "—"
         text += (
-            f"• <a href='tg://user?id={u['user_id']}'>{name}</a>\n"
-            f"  🆔 <code>{u['user_id']}</code> | {uname}\n\n"
+            f"• <a href='tg://user?id={user_id}'>{name}</a>\n"
+            f"  🆔 <code>{user_id}</code> | {uname}\n\n"
         )
 
     nav = []

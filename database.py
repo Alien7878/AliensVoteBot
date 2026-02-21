@@ -49,9 +49,6 @@ class Database:
         await self.db.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER PRIMARY KEY,
-                username TEXT,
-                first_name TEXT,
-                last_name TEXT,
                 joined_at TEXT DEFAULT (datetime('now'))
             )
         """)
@@ -94,22 +91,19 @@ class Database:
 
     async def add_user(self, user_id: int, username: str, first_name: str, last_name: str):
         await self.db.execute(
-            """INSERT INTO users (user_id, username, first_name, last_name, joined_at)
-               VALUES (?, ?, ?, ?, COALESCE(
+            """INSERT INTO users (user_id, joined_at)
+               VALUES (?, COALESCE(
                    (SELECT joined_at FROM users WHERE user_id = ?),
                    datetime('now')
                ))
-               ON CONFLICT(user_id) DO UPDATE SET
-                   username = excluded.username,
-                   first_name = excluded.first_name,
-                   last_name = excluded.last_name""",
-            (user_id, username, first_name, last_name, user_id),
+               ON CONFLICT(user_id) DO NOTHING""",
+            (user_id, user_id),
         )
         await self.db.commit()
 
     async def get_user(self, user_id: int):
         cursor = await self.db.execute(
-            "SELECT * FROM users WHERE user_id = ?", (user_id,)
+            "SELECT user_id, joined_at FROM users WHERE user_id = ?", (user_id,)
         )
         row = await cursor.fetchone()
         return dict(row) if row else None
@@ -117,7 +111,7 @@ class Database:
     async def get_all_users(self, page: int = 1, per_page: int = 10):
         offset = (page - 1) * per_page
         cursor = await self.db.execute(
-            "SELECT * FROM users ORDER BY joined_at DESC LIMIT ? OFFSET ?",
+            "SELECT user_id, joined_at FROM users ORDER BY joined_at DESC LIMIT ? OFFSET ?",
             (per_page, offset),
         )
         rows = await cursor.fetchall()
