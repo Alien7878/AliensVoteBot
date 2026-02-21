@@ -1,0 +1,6 @@
+BOT_TOKEN = "TOKEN"
+ADMIN_ID = 123456789
+DB_PATH = "database.db"
+CAPTCHA_COUNT = 3
+PER_PAGE = 10
+BOT_USERNAME = None  # Set at startup
