@@ -57,20 +57,28 @@ def generate_captcha_image() -> tuple[bytes, int, list[int]]:
     img = Image.new("RGB", (W, H), bg_color)
     draw = ImageDraw.Draw(img)
 
-    # Noise: random lines
+    # Noise: random lines (متوسط)
     for _ in range(random.randint(6, 12)):
         x1, y1 = random.randint(0, W), random.randint(0, H)
         x2, y2 = random.randint(0, W), random.randint(0, H)
-        color = (random.randint(150, 210), random.randint(150, 210), random.randint(150, 210))
+        color = (random.randint(140, 210), random.randint(140, 210), random.randint(140, 210))
         draw.line([(x1, y1), (x2, y2)], fill=color, width=random.randint(1, 2))
 
-    # Noise: random dots
-    for _ in range(random.randint(80, 150)):
+    # Noise: random dots (متوسط)
+    for _ in range(random.randint(80, 180)):
         x, y = random.randint(0, W - 1), random.randint(0, H - 1)
         color = (random.randint(100, 200), random.randint(100, 200), random.randint(100, 200))
-        draw.ellipse([(x, y), (x + 2, y + 2)], fill=color)
+        draw.ellipse([(x, y), (x + random.randint(1, 3), y + random.randint(1, 3))], fill=color)
 
-    # Draw the math expression character by character with random offsets & rotation
+    # Noise: منحنی‌های متوسط
+    for _ in range(random.randint(2, 4)):
+        points = []
+        for _ in range(random.randint(3, 5)):
+            points.append((random.randint(0, W), random.randint(0, H)))
+        color = (random.randint(100, 180), random.randint(100, 180), random.randint(100, 180))
+        draw.line(points, fill=color, width=random.randint(1, 2))
+
+    # Draw the math expression character by character with random offsets & rotation & scale (متوسط)
     text = f"{expr} = ?"
     font = _get_font(38)
     small_font = _get_font(16)
@@ -94,34 +102,50 @@ def generate_captcha_image() -> tuple[bytes, int, list[int]]:
         b = random.randint(0, 100)
 
         y_off = random.randint(-8, 8)
+        scale = random.uniform(0.95, 1.1)
 
-        # Create a small image for this char and rotate it slightly
+        # Create a small image for this char and rotate/distort it
         char_img = Image.new("RGBA", (60, 60), (0, 0, 0, 0))
         char_draw = ImageDraw.Draw(char_img)
         char_draw.text((10, 5), ch, font=font, fill=(r, g, b, 255))
-        angle = random.uniform(-15, 15)
-        char_img = char_img.rotate(angle, expand=False, resample=Image.BICUBIC)
+        angle = random.uniform(-12, 12)
+        char_img = char_img.rotate(angle, expand=True, resample=Image.BICUBIC)
+        # Scale
+        char_img = char_img.resize((int(char_img.width * scale), int(char_img.height * scale)), resample=Image.BICUBIC)
 
         # Paste onto main image
-        paste_y = (H - 60) // 2 + y_off
+        paste_y = (H - char_img.height) // 2 + y_off
         img.paste(char_img, (x_cursor - 5, paste_y), char_img)
         x_cursor += char_sizes[i]
 
-    # Noise: arcs / curves
-    for _ in range(random.randint(2, 4)):
-        x1 = random.randint(0, W // 2)
-        x2 = random.randint(W // 2, W)
-        ya = random.randint(0, H)
-        yb = random.randint(0, H)
-        y_top, y_bot = min(ya, yb), max(ya, yb)
-        if y_top == y_bot:
-            y_bot += 10
-        color = (random.randint(100, 180), random.randint(100, 180), random.randint(100, 180))
-        draw.arc([(x1, y_top), (x2, y_bot)], 0, 360, fill=color, width=2)
+    # اعوجاج موجی (wave distortion متوسط)
+    def wave_distort(im):
+        pixels = im.load()
+        new_img = Image.new("RGB", im.size)
+        new_pixels = new_img.load()
+        amp = random.randint(8, 10)
+        freq = random.uniform(0.06, 0.12)
+        phase = random.uniform(0, math.pi * 2)
+        for y in range(H):
+            for x in range(W):
+                dx = int(amp * math.sin(freq * y + phase))
+                dy = int(amp * math.cos(freq * x + phase))
+                nx = x + dx
+                ny = y + dy
+                if 0 <= nx < W and 0 <= ny < H:
+                    new_pixels[x, y] = pixels[nx, ny]
+                else:
+                    new_pixels[x, y] = bg_color
+        return new_img
+    img = wave_distort(img)
+    draw = ImageDraw.Draw(img)
 
-    # "Vote Bot" label
-    draw.text((W - 200, H - 18), "@AliensVoteBot", font=small_font,
-              fill=(180, 180, 180, 180))
+    # "Vote Bot" label (با اعوجاج متوسط)
+    label = "@AliensVoteBot"
+    for i, ch in enumerate(label):
+        x = W - 200 + i * 12 + random.randint(-1, 1)
+        y = H - 18 + random.randint(-1, 1)
+        draw.text((x, y), ch, font=small_font, fill=(180, 180, 180, 180))
 
     # Export to bytes
     buf = io.BytesIO()
