@@ -175,17 +175,21 @@ async def cb_admin_polls(callback: CallbackQuery, bot: Bot):
     for p in polls:
         options = json.loads(p["options"])
         total_v = await db.get_total_votes(p["poll_id"])
-        creator = await db.get_user(p["creator_id"])
+        creator_id = p["creator_id"]
         creator_name = "ناشناس"
-        if creator:
-            creator_name = escape(creator["first_name"] or "")
-            if creator["last_name"]:
-                creator_name += f" {escape(creator['last_name'])}"
+        try:
+            tg_user = await bot.get_chat(creator_id)
+            creator_name = escape(tg_user.first_name or "")
+            if getattr(tg_user, "last_name", None):
+                creator_name += f" {escape(tg_user.last_name)}"
+            creator_name = creator_name or "بدون نام"
+        except Exception:
+            pass
 
         text += (
             f"• <b>{escape(p['question'])}</b>\n"
-            f"  سازنده: <a href='tg://user?id={p['creator_id']}'>{creator_name}</a>"
-            f" (<code>{p['creator_id']}</code>)\n"
+            f"  سازنده: <a href='tg://user?id={creator_id}'>{creator_name}</a>"
+            f" (<code>{creator_id}</code>)\n"
             f"  گزینه‌ها: {len(options)} | آرا: {total_v}\n\n"
         )
         rows_btns.append(
