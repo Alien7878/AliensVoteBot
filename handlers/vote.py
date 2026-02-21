@@ -277,7 +277,8 @@ async def cb_captcha_answer(callback: CallbackQuery, state: FSMContext, bot: Bot
                 if log_link:
                     kb_rows.append([InlineKeyboardButton(text="📢 کانال شفافیت آرا", url=log_link)])
 
-            kb_rows.append([InlineKeyboardButton(text="🔙 منوی اصلی", callback_data="main_menu")])
+            # حذف دکمه بازگشت
+            # kb_rows.append([InlineKeyboardButton(text="🔙 منوی اصلی", callback_data="main_menu")])
             kb = InlineKeyboardMarkup(inline_keyboard=kb_rows)
 
             # Delete captcha image message, send text result
