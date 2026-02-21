@@ -231,18 +231,21 @@ async def cb_admin_poll_detail(callback: CallbackQuery, bot: Bot):
     options = json.loads(poll["options"])
     vote_counts = await db.get_vote_counts(poll_id)
     total = await db.get_total_votes(poll_id)
-    creator = await db.get_user(poll["creator_id"])
-
+    creator_id = poll["creator_id"]
     bot_username = config.BOT_USERNAME or (await bot.get_me()).username
     link = f"https://t.me/{bot_username}?start=poll_{poll_id}"
 
     creator_name = "ناشناس"
     creator_uname = "—"
-    if creator:
-        creator_name = escape(creator["first_name"] or "")
-        if creator["last_name"]:
-            creator_name += f" {escape(creator['last_name'])}"
-        creator_uname = f"@{creator['username']}" if creator["username"] else "—"
+    try:
+        tg_user = await bot.get_chat(creator_id)
+        creator_name = escape(tg_user.first_name or "")
+        if getattr(tg_user, "last_name", None):
+            creator_name += f" {escape(tg_user.last_name)}"
+        creator_name = creator_name or "بدون نام"
+        creator_uname = f"@{tg_user.username}" if getattr(tg_user, "username", None) else "—"
+    except Exception:
+        pass
 
     text = (
         f"📊 <b>{escape(poll['question'])}</b>\n\n"
